@@ -1,6 +1,6 @@
 import numpy as np
-from reference.utils.features import prepare_for_training
-from reference.utils.hypothesis import sigmoid, sigmoid_gradient
+from utils.features import prepare_for_training
+from utils.hypothesis import sigmoid, sigmoid_gradient
 
 
 class MultilayerPerceptron:
@@ -60,7 +60,9 @@ class MultilayerPerceptron:
         for _ in range(max_iterations):
             cost = MultilayerPerceptron.cost_function(data, labels,
                                                       MultilayerPerceptron.thetas_roll(optimized_theta, layers), layers)
+            # 记录损失值
             cost_history.append(cost)
+            # 求梯度
             theta_gradient = MultilayerPerceptron.gradient_step(data, labels, optimized_theta, layers)
             optimized_theta = optimized_theta - alpha * theta_gradient
         return optimized_theta, cost_history
@@ -68,6 +70,7 @@ class MultilayerPerceptron:
     @staticmethod
     def gradient_step(data, labels, optimized_theta, layers):
         theta = MultilayerPerceptron.thetas_roll(optimized_theta, layers)
+        # 反向传播
         thetas_rolled_gradients = MultilayerPerceptron.back_propagation(data, labels, theta, layers)
         thetas_unrolled_gradients = MultilayerPerceptron.thetas_unroll(thetas_rolled_gradients)
         return thetas_unrolled_gradients
@@ -76,6 +79,7 @@ class MultilayerPerceptron:
     def back_propagation(data, labels, thetas, layers):
         num_layers = len(layers)
         (num_examples, num_features) = data.shape
+        # 最后一层是10分类结果
         num_label_types = layers[-1]
 
         deltas = {}
@@ -93,9 +97,10 @@ class MultilayerPerceptron:
             for layer_index in range(num_layers - 1):
                 layer_theta = thetas[layer_index]  # 得到当前权重参数值 25*785   10*26
                 layer_input = np.dot(layer_theta, layers_activation)  # 第一次得到25*1 第二次10*1
-                layers_activation = np.vstack((np.array([[1]]), sigmoid(layer_input)))
+                layers_activation = np.vstack((np.array([[1]]), sigmoid(layer_input)))  # 添加偏置项
                 layers_inputs[layer_index + 1] = layer_input  # 后一层计算结果
                 layers_activations[layer_index + 1] = layers_activation  # 后一层经过激活函数后的结果
+            # 反向传播从最后一次结果计算                    去掉偏置参数
             output_layer_activation = layers_activation[1:, :]
 
             delta = {}
@@ -135,8 +140,11 @@ class MultilayerPerceptron:
         # 制作标签，每一个样本的标签都得是one-hot
         bitwise_labels = np.zeros((num_examples, num_labels))
         for example_index in range(num_examples):
+            #                            找label中对应的值在bitwise_labels中位置=1
             bitwise_labels[example_index][labels[example_index][0]] = 1
+        # 预测正确的
         bit_set_cost = np.sum(np.log(predictions[bitwise_labels == 1]))
+        # 预测错误的
         bit_not_set_cost = np.sum(np.log(1 - predictions[bitwise_labels == 0]))
         cost = (-1 / num_examples) * (bit_set_cost + bit_not_set_cost)
         return cost
